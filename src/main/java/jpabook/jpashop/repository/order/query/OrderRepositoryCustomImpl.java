@@ -1,9 +1,10 @@
-package jpabook.jpashop.repository;
+package jpabook.jpashop.repository.order.query;
 
-import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import jpabook.jpashop.domain.*;
 import jpabook.jpashop.domain.Order;
+import jpabook.jpashop.domain.*;
+import jpabook.jpashop.repository.OrderSearch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 
@@ -109,6 +110,27 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
                 .from(order)
                 .join(order.member, member).fetchJoin()
                 .join(order.delivery, delivery).fetchJoin()
+                .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
+                        !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
+                .limit(1000)
+                .fetch();
+    }
+
+    @Override
+    public List<SimpleOrderQueryDto> findAllDtoWithMemberDeliveryByQuerydsl(OrderSearch orderSearch) {
+        query = new JPAQueryFactory(em);
+
+        QOrder order = QOrder.order;
+        QMember member = QMember.member;
+        QDelivery delivery = QDelivery.delivery;
+
+
+        return query
+                .select(Projections.constructor(SimpleOrderQueryDto.class,
+                        order.id, order.member.name, order.orderDate, order.status, delivery.address))
+                .from(order)
+                .join(order.member, member)
+                .join(order.delivery, delivery)
                 .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
                         !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
                 .limit(1000)
