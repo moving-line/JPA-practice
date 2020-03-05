@@ -95,4 +95,23 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
         TypedQuery<Order> query = em.createQuery(cq).setMaxResults(1000); //최대 1000건
         return query.getResultList();
     }
+
+    @Override
+    public List<Order> findAllWithMemberDeliveryByQuerydsl(OrderSearch orderSearch) {
+        query = new JPAQueryFactory(em);
+
+        QOrder order = QOrder.order;
+        QMember member = QMember.member;
+        QDelivery delivery = QDelivery.delivery;
+
+        return query.
+                select(order)
+                .from(order)
+                .join(order.member, member).fetchJoin()
+                .join(order.delivery, delivery).fetchJoin()
+                .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
+                        !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
+                .limit(1000)
+                .fetch();
+    }
 }
