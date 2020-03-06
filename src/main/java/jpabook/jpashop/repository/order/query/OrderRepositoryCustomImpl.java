@@ -4,6 +4,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jpabook.jpashop.domain.Order;
 import jpabook.jpashop.domain.*;
+import jpabook.jpashop.domain.item.QItem;
 import jpabook.jpashop.repository.OrderSearch;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -131,6 +132,35 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
                 .from(order)
                 .join(order.member, member)
                 .join(order.delivery, delivery)
+                .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
+                        !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
+                .limit(1000)
+                .fetch();
+    }
+
+    @Override
+    public List<Order> findAllWithItemByQuerydsl(OrderSearch orderSearch) {
+
+        query = new JPAQueryFactory(em);
+
+        QOrder order = QOrder.order;
+        QMember member = QMember.member;
+        QDelivery delivery = QDelivery.delivery;
+        QOrderItem orderItem = QOrderItem.orderItem;
+        QItem item = QItem.item;
+
+        // 일대다 특성상 일(1)인 order가 뻥튀기됨. 고로 distinct는 DB에선 할 수 없고, JPA가 DB가 아닌, 어플리케이션에서 해준 것
+        // collection fetch join 특징
+        // 1. DB상에서 페이징 불가. 메모리상에서 페이징 처리하므로 매우 위험
+        // 2. 1개만 사용하다. 2개부터는 데이터 부정합 가능성이 매우 높음
+
+        return query
+                .select(order).distinct()
+                .from(order)
+                .join(order.member, member).fetchJoin()
+                .join(order.delivery, delivery).fetchJoin()
+                .join(order.orderItems, orderItem).fetchJoin()
+                .join(orderItem.item, item).fetchJoin()
                 .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
                         !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
                 .limit(1000)
