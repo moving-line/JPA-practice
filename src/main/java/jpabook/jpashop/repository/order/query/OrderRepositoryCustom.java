@@ -14,4 +14,6 @@ public interface OrderRepositoryCustom {
     List<SimpleOrderQueryDto> findAllDtoWithMemberDeliveryByQuerydsl(OrderSearch orderSearch);
 
     List<Order> findAllWithItemByQuerydsl(OrderSearch orderSearch);
+    List<Order> findAllPageWithMemberDeliveryByQuerydsl(int offset, int limit, OrderSearch orderSearch);
+
 }
