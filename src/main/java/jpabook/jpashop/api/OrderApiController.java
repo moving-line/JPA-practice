@@ -4,9 +4,9 @@ import jpabook.jpashop.domain.Address;
 import jpabook.jpashop.domain.Order;
 import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
-import jpabook.jpashop.domain.item.Item;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderQueryDto;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,6 +65,13 @@ public class OrderApiController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/api/v4/orders")
+    private List<OrderQueryDto> ordersV4_page(
+            @RequestParam(value = "offset", defaultValue = "0") int offest,
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+        return  orderRepository.findOrderQueryDto(offest, limit, new OrderSearch());
+    }
+
     @Data
     static class OrderDto {
 
@@ -90,12 +97,12 @@ public class OrderApiController {
     @Data
     static class OrderItemDto {
 
-        private String itemNAme;
+        private String itemName;
         private int orderPrice;
         private int count;
 
         public OrderItemDto(OrderItem orderItem) {
-            this.itemNAme = orderItem.getItem().getName();
+            this.itemName = orderItem.getItem().getName();
             this.orderPrice = orderItem.getOrderPrice();
             this.count = orderItem.getCount();
         }

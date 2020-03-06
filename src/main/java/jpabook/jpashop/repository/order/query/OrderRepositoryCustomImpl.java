@@ -196,4 +196,53 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
                 .limit(limit)
                 .fetch();
     }
+
+    @Override
+    public List<OrderQueryDto> findAllPageDtoWithMemberDeliveryByQuerydsl(int offset, int limit, OrderSearch orderSearch) {
+        query = new JPAQueryFactory(em);
+
+        QOrder order = QOrder.order;
+        QMember member = QMember.member;
+        QDelivery delivery = QDelivery.delivery;
+
+        return query
+                .select(Projections.constructor(OrderQueryDto.class,
+                        order.id, order.member.name, order.orderDate, order.status, delivery.address))
+                .from(order)
+                .join(order.member, member)
+                .join(order.delivery, delivery)
+                .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
+                        !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
+                .offset(offset)
+                .limit(limit)
+                .fetch();
+    }
+
+    @Override
+    public List<OrderItemQueryDto> findAllDtoByQuerydsl(Long orderId) {
+        query = new JPAQueryFactory(em);
+
+        QItem item = QItem.item;
+        QOrderItem orderItem = QOrderItem.orderItem;
+
+        return query
+                .select(Projections.constructor(OrderItemQueryDto.class,
+                        orderItem.order.id, orderItem.item.name, orderItem.orderPrice, orderItem.count))
+                .from(orderItem)
+                .join(orderItem.item, item)
+                .where(orderItem.order.id.eq(orderId))
+                .fetch();
+    }
+
+    @Override
+    public List<OrderQueryDto> findOrderQueryDto(int offset, int limit, OrderSearch orderSearch) {
+        List<OrderQueryDto> result = findAllPageDtoWithMemberDeliveryByQuerydsl(offset, limit, orderSearch);
+
+        result.forEach(o -> {
+            List<OrderItemQueryDto> orderItems = findAllDtoByQuerydsl(o.getOrderId());
+            o.setOrderItems(orderItems);
+        });
+
+        return result;
+    }
 }
