@@ -14,6 +14,8 @@ import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
@@ -244,5 +246,38 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
         });
 
         return result;
+    }
+
+    @Override
+    public List<OrderQueryDto> findOrderQueryDtoOptimization(int offset, int limit, OrderSearch orderSearch) {
+        // 쿼리 1회
+        List<OrderQueryDto> result = findAllPageDtoWithMemberDeliveryByQuerydsl(offset, limit, orderSearch);
+        List<Long> orderIds = result.stream()
+                .map(OrderQueryDto::getOrderId)
+                .collect(Collectors.toList());
+
+        // 쿼리 1회
+        List<OrderItemQueryDto> orderItems = findAllDtoByQuerydslOptimization(orderIds);
+        Map<Long, List<OrderItemQueryDto>> orderItemMap = orderItems.stream()
+                .collect(Collectors.groupingBy(OrderItemQueryDto::getOrderId));
+
+        result.forEach(o -> o.setOrderItems(orderItemMap.get(o.getOrderId())));
+        return result;
+    }
+
+    @Override
+    public List<OrderItemQueryDto> findAllDtoByQuerydslOptimization(List<Long> orderIds) {
+        query = new JPAQueryFactory(em);
+
+        QItem item = QItem.item;
+        QOrderItem orderItem = QOrderItem.orderItem;
+
+        return query
+                .select(Projections.constructor(OrderItemQueryDto.class,
+                        orderItem.order.id, orderItem.item.name, orderItem.orderPrice, orderItem.count))
+                .from(orderItem)
+                .join(orderItem.item, item)
+                .where(orderItem.order.id.in(orderIds))
+                .fetch();
     }
 }
