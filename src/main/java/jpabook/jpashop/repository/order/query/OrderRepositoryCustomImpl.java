@@ -280,4 +280,29 @@ public class OrderRepositoryCustomImpl implements OrderRepositoryCustom {
                 .where(orderItem.order.id.in(orderIds))
                 .fetch();
     }
+
+    @Override
+    public List<OrderFlatDto> findOrderQueryDtoFlat(int offset, int limit, OrderSearch orderSearch) {
+        query = new JPAQueryFactory(em);
+
+        QOrder order = QOrder.order;
+        QMember member = QMember.member;
+        QDelivery delivery = QDelivery.delivery;
+        QOrderItem orderItem = QOrderItem.orderItem;
+        QItem item = QItem.item;
+
+        return query
+                .select(Projections.constructor(OrderFlatDto.class,
+                        order.id, member.name, order.orderDate, order.status, delivery.address, item.name, orderItem.count, orderItem.orderPrice))
+                .from(order)
+                .join(order.member, member)
+                .join(order.delivery, delivery)
+                .join(order.orderItems, orderItem)
+                .join(orderItem.item, item)
+                .where(orderSearch.getOrderStatus() == null ? null : order.status.eq(orderSearch.getOrderStatus()),
+                        !StringUtils.hasText(orderSearch.getMemberName()) ? null : member.name.contains(orderSearch.getMemberName()))
+                .offset(offset)
+                .limit(limit)
+                .fetch();
+    }
 }

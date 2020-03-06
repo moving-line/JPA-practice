@@ -6,6 +6,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderFlatDto;
+import jpabook.jpashop.repository.order.query.OrderItemQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryDto;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.*;
 
 @RequiredArgsConstructor
 @RestController
@@ -42,7 +46,7 @@ public class OrderApiController {
 
         return orders.stream()
                 .map(OrderDto::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @GetMapping("/api/v3/orders")
@@ -51,32 +55,49 @@ public class OrderApiController {
 
         return orders.stream()
                 .map(OrderDto::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @GetMapping("/api/v3.1/orders")
     private List<OrderDto> ordersV3_page(
-            @RequestParam(value = "offset", defaultValue = "0") int offest,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "100") int limit) {
-        List<Order> orders = orderRepository.findAllPageWithMemberDeliveryByQuerydsl(offest, limit, new OrderSearch());
+        List<Order> orders = orderRepository.findAllPageWithMemberDeliveryByQuerydsl(offset, limit, new OrderSearch());
 
         return orders.stream()
                 .map(OrderDto::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @GetMapping("/api/v4/orders")
     private List<OrderQueryDto> ordersV4_page(
-            @RequestParam(value = "offset", defaultValue = "0") int offest,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "100") int limit) {
-        return  orderRepository.findOrderQueryDto(offest, limit, new OrderSearch());
+        return orderRepository.findOrderQueryDto(offset, limit, new OrderSearch());
     }
 
     @GetMapping("/api/v5/orders")
     private List<OrderQueryDto> ordersV5_page(
-            @RequestParam(value = "offset", defaultValue = "0") int offest,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "limit", defaultValue = "100") int limit) {
-        return  orderRepository.findOrderQueryDtoOptimization(offest, limit, new OrderSearch());
+        return orderRepository.findOrderQueryDtoOptimization(offset, limit, new OrderSearch());
+    }
+
+    @GetMapping("/api/v6/orders")
+    private List<OrderQueryDto> ordersV6_page(
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+        List<OrderFlatDto> flats = orderRepository.findOrderQueryDtoFlat(offset, limit, new OrderSearch());
+
+        return flats.stream()
+                .collect(groupingBy(o ->
+                                new OrderQueryDto(o.getOrderId(), o.getName(), o.getOrderDate(), o.getOrderStatus(), o.getAddress()),
+                        mapping(o -> new OrderItemQueryDto(o.getOrderId(), o.getItemName(), o.getOrderPrice(), o.getCount()), toList())
+                ))
+                .entrySet().stream()
+                .map(e -> new OrderQueryDto(
+                        e.getKey().getOrderId(), e.getKey().getName(), e.getKey().getOrderDate(), e.getKey().getOrderStatus(), e.getKey().getAddress(), e.getValue()))
+                .collect(toList());
     }
 
     @Data
@@ -97,7 +118,7 @@ public class OrderApiController {
             order.getOrderItems().forEach(o -> o.getItem().getName());
             this.orderItems = order.getOrderItems().stream()
                     .map(OrderItemDto::new)
-                    .collect(Collectors.toList());
+                    .collect(toList());
         }
     }
 

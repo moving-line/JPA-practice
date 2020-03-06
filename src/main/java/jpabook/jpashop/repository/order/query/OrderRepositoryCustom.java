@@ -22,4 +22,7 @@ public interface OrderRepositoryCustom {
 
     List<OrderQueryDto> findOrderQueryDtoOptimization(int offset, int limit, OrderSearch orderSearch);
     List<OrderItemQueryDto> findAllDtoByQuerydslOptimization(List<Long> orderId);
+
+    List<OrderFlatDto> findOrderQueryDtoFlat(int offset, int limit, OrderSearch orderSearch);
+
 }
