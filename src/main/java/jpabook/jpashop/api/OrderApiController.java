@@ -9,6 +9,7 @@ import jpabook.jpashop.repository.OrderSearch;
 import jpabook.jpashop.repository.order.query.OrderFlatDto;
 import jpabook.jpashop.repository.order.query.OrderItemQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryDto;
+import jpabook.jpashop.service.query.OrderQueryService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,7 @@ import static java.util.stream.Collectors.*;
 public class OrderApiController {
 
     private final OrderRepository orderRepository;
+    private final OrderQueryService orderQueryService;
 
     @GetMapping("/api/v1/orders")
     private List<Order> ordersV1() {
@@ -47,6 +49,12 @@ public class OrderApiController {
         return orders.stream()
                 .map(OrderDto::new)
                 .collect(toList());
+    }
+
+    // OSIV 껐을 때 추천하는 방
+    @GetMapping("/api/v2/orders")
+    private List<jpabook.jpashop.service.query.OrderDto> ordersV2_OSIV() {
+        return orderQueryService.ordersV2_OSIV();
     }
 
     @GetMapping("/api/v3/orders")
